@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  # Redis - Message Broker (Redis Streams)
+  redis:
+    image: redis:7-alpine
+    container_name: aspri-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - aspri-network
+
+  # Redis Commander - Web UI for Redis (Optional)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: aspri-redis-commander
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - aspri-network
+
+volumes:
+  redis-data:
+    driver: local
+
+networks:
+  aspri-network:
+    driver: bridge

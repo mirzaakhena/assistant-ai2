@@ -1,0 +1,28 @@
+{
+  "name": "aspri-ai2",
+  "version": "2.0.0",
+  "description": "Modular AI Assistant with WhatsApp & Cronjob Integration",
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "services/*",
+    "shared/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "dev:whatsapp": "npm run dev -w services/whatsapp",
+    "dev:cronjob": "npm run dev -w services/cronjob",
+    "dev:mcp": "npm run dev -w services/mcp",
+    "dev:ai": "npm run dev -w services/ai-engine",
+    "start:whatsapp": "npm run start -w services/whatsapp",
+    "start:cronjob": "npm run start -w services/cronjob",
+    "start:mcp": "npm run start -w services/mcp",
+    "start:ai": "npm run start -w services/ai-engine",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
+  },
+  "keywords": ["ai", "whatsapp", "mcp", "langchain", "redis"],
+  "author": "Mirza",
+  "license": "MIT"
+}

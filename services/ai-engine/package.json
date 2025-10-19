@@ -1,0 +1,29 @@
+{
+  "name": "@aspri/ai-engine",
+  "version": "2.0.0",
+  "description": "AI Engine - Event Consumer + MCP Client",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@aspri/logger": "^1.0.0",
+    "@aspri/types": "^1.0.0",
+    "@aspri/utils": "^1.0.0",
+    "@langchain/anthropic": "^1.0.0",
+    "@langchain/core": "^1.0.1",
+    "@langchain/langgraph": "^1.0.0",
+    "@langchain/mcp-adapters": "^1.0.0",
+    "@langchain/ollama": "^1.0.0",
+    "@langchain/openai": "^1.0.0",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "@aspri/mcp-server",
+  "version": "1.0.0",
+  "description": "MCP Server - Bridge/Proxy to WhatsApp and Cronjob Services",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@aspri/logger": "^1.0.0",
+    "@aspri/types": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

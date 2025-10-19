@@ -1,0 +1,27 @@
+{
+  "name": "@aspri/cronjob-service",
+  "version": "1.0.0",
+  "description": "Cronjob Service - Scheduler + Event Publisher",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@aspri/logger": "^1.0.0",
+    "@aspri/types": "^1.0.0",
+    "@aspri/utils": "^1.0.0",
+    "express": "^4.21.2",
+    "node-cron": "^3.0.3",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.2",
+    "@types/node-cron": "^3.0.11",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
