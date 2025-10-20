@@ -73,7 +73,8 @@ export class CronScheduler {
         name: definition.name,
         type: definition.type,
         schedule: definition.schedule,
-        scheduledTime: definition.scheduledTime
+        scheduledTime: definition.scheduledTime,
+        payload: definition.payload
       },
       'Job created'
     );
@@ -109,10 +110,27 @@ export class CronScheduler {
     let timeout: NodeJS.Timeout | null = null;
 
     if (definition.enabled) {
-      const delay = definition.scheduledTime! - Date.now();
+      const now = Date.now();
+      const delay = definition.scheduledTime! - now;
+
+      logger.info({
+        jobId: definition.id,
+        name: definition.name,
+        scheduledTime: definition.scheduledTime,
+        scheduledTimeISO: new Date(definition.scheduledTime!).toISOString(),
+        currentTime: now,
+        currentTimeISO: new Date(now).toISOString(),
+        delayMs: delay,
+        delaySec: Math.round(delay / 1000),
+        willFireAt: new Date(now + delay).toISOString()
+      }, 'Creating setTimeout for one-time job');
+
       timeout = setTimeout(async () => {
+        logger.info({ jobId: definition.id, name: definition.name }, 'setTimeout callback triggered - about to execute job');
         await this.executeJob(definition.id);
       }, delay);
+
+      logger.info({ jobId: definition.id, hasTimeout: !!timeout }, 'setTimeout created successfully');
     }
 
     this.jobs.set(definition.id, {
@@ -134,7 +152,12 @@ export class CronScheduler {
 
     const definition = jobEntry.definition;
 
-    logger.info({ jobId: definition.id, name: definition.name, type: definition.type }, 'Executing job');
+    logger.info({
+      jobId: definition.id,
+      name: definition.name,
+      type: definition.type,
+      payload: definition.payload
+    }, 'Firing job');
 
     try {
       const event: CronjobEvent = {
@@ -153,7 +176,11 @@ export class CronScheduler {
       const streamName = process.env.CRONJOB_STREAM_NAME || 'cronjob:events';
       await this.eventPublisher.publish(streamName, event);
 
-      logger.info({ jobId: definition.id, eventId: event.eventId }, 'Job event published');
+      logger.info({
+        jobId: definition.id,
+        eventId: event.eventId,
+        streamName
+      }, 'Event published to Redis Stream');
 
       // Mark one-time jobs as executed
       if (definition.type === 'one-time') {

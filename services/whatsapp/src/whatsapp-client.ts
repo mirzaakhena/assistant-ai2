@@ -69,7 +69,11 @@ export class WhatsAppClient {
         return;
       }
 
-      logger.debug({ from: message.from, body: message.body }, 'Received incoming message');
+      logger.info({
+        from: message.from,
+        message: message.body,
+        messageLength: message.body.length
+      }, 'Received incoming WhatsApp message');
 
       const whatsappMessage: WhatsAppMessage = {
         id: message.id.id,
@@ -93,7 +97,11 @@ export class WhatsAppClient {
         const streamName = process.env.WHATSAPP_STREAM_NAME || 'whatsapp:messages';
         await this.eventPublisher.publish(streamName, event);
 
-        logger.info({ from: message.from, eventId: event.eventId }, 'Message event published');
+        logger.info({
+          from: message.from,
+          eventId: event.eventId,
+          streamName
+        }, 'Event published to Redis Stream');
       } catch (error) {
         logger.error({ error, from: message.from }, 'Failed to publish message event');
       }
@@ -128,7 +136,11 @@ export class WhatsAppClient {
       : `${phoneNumber.replace(/\D/g, '')}@c.us`;
 
     await this.client.sendMessage(chatId, message);
-    logger.debug({ chatId, messageLength: message.length }, 'Message sent');
+    logger.info({
+      to: chatId,
+      message: message,
+      messageLength: message.length
+    }, 'Sent outgoing WhatsApp message');
   }
 
   async getMessages(phoneNumber: string, limit: number = 10): Promise<WhatsAppMessage[]> {

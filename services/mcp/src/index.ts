@@ -5,6 +5,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { createLogger } from '@aspri/logger';
+import { initializeValidators } from '@aspri/utils';
 import { whatsappTools, handleWhatsAppTool } from './tools/whatsapp.js';
 import { cronjobTools, handleCronjobTool } from './tools/cronjob.js';
 
@@ -35,17 +36,36 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
   try {
+    // Extract userId from args for validation context
+    const userId = typeof args?.userId === 'string' ? args.userId : undefined;
+    const context = userId ? { userId } : undefined;
+
+    logger.info({
+      tool: name,
+      arguments: args,
+      userId: userId
+    }, 'Tool invoked by AI');
+
+    let result;
+
     // WhatsApp tools
     if (name.startsWith('whatsapp_')) {
-      return await handleWhatsAppTool(name, args);
+      result = await handleWhatsAppTool(name, args, context);
     }
-
     // Cronjob tools
-    if (name.startsWith('cronjob_')) {
-      return await handleCronjobTool(name, args);
+    else if (name.startsWith('cronjob_')) {
+      result = await handleCronjobTool(name, args, context);
+    }
+    else {
+      throw new Error(`Unknown tool: ${name}`);
     }
 
-    throw new Error(`Unknown tool: ${name}`);
+    logger.info({
+      tool: name,
+      success: !(result as any).isError
+    }, 'Tool execution completed');
+
+    return result;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error({ error: errorMessage, tool: name }, 'Tool execution failed');
@@ -64,6 +84,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 // Start server
 async function main() {
   logger.info('Starting MCP Server...');
+
+  // Initialize validators
+  initializeValidators();
+  logger.info('Validators initialized');
 
   const transport = new StdioServerTransport();
   await server.connect(transport);

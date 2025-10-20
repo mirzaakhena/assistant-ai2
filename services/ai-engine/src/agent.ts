@@ -24,6 +24,7 @@ export class AgentOrchestrator {
   private llm: BaseChatModel | null = null;
   private sessionManager: SessionManager | null = null;
   private tools: any[] = [];
+  private currentUserId: string | null = null;
 
   async initialize() {
     logger.info('Initializing AI Agent...');
@@ -97,7 +98,19 @@ export class AgentOrchestrator {
     // Get tools from MCP server
     try {
       this.tools = await this.mcpClient.getTools();
-      logger.info({ toolCount: this.tools.length }, 'MCP tools loaded');
+      logger.info({
+        toolCount: this.tools.length,
+        toolNames: this.tools.map((t: any) => t.name)
+      }, 'MCP tools loaded');
+
+      // Log each tool for debugging
+      this.tools.forEach((tool: any) => {
+        logger.debug({
+          name: tool.name,
+          description: tool.description?.substring(0, 100),
+          hasInvoke: typeof tool.invoke === 'function',
+        }, 'Tool registered');
+      });
     } catch (error) {
       logger.error({ error }, 'Failed to get MCP tools');
       throw error;
@@ -111,6 +124,12 @@ export class AgentOrchestrator {
       llm: this.llm,
       tools: this.tools,
     });
+
+    logger.info({
+      agentCreated: !!this.agent,
+      toolsPassedToAgent: this.tools.length,
+      llmModel: modelName,
+    }, 'ReAct agent created');
 
     // Initialize Session Manager
     logger.info('Initializing Session Manager...');
@@ -137,8 +156,8 @@ export class AgentOrchestrator {
       // Get conversation history
       const sessionMessages = this.sessionManager.getMessages(chatId);
 
-      // Inject fresh system prompt with current timestamp
-      const systemPrompt = getSystemPrompt();
+      // Inject fresh system prompt with current timestamp and userId
+      const systemPrompt = getSystemPrompt(this.currentUserId || undefined);
       const messagesWithSystem = [
         new SystemMessage(systemPrompt),
         ...sessionMessages
@@ -146,6 +165,23 @@ export class AgentOrchestrator {
 
       const response = await this.agent.invoke({
         messages: messagesWithSystem,
+      });
+
+      // DEBUG: Log all messages to see if tools were called
+      logger.info({
+        totalMessages: response.messages.length,
+        messageTypes: response.messages.map((m: any) => m._getType ? m._getType() : typeof m),
+      }, 'Agent response received');
+
+      // Log each message for debugging
+      response.messages.forEach((msg: any, index: number) => {
+        logger.debug({
+          index,
+          type: msg._getType ? msg._getType() : typeof msg,
+          hasToolCalls: !!msg.tool_calls,
+          toolCallsCount: msg.tool_calls ? msg.tool_calls.length : 0,
+          contentPreview: typeof msg.content === 'string' ? msg.content.substring(0, 100) : 'non-string',
+        }, 'Message in response');
       });
 
       const lastMessage = response.messages[response.messages.length - 1];
@@ -167,14 +203,22 @@ export class AgentOrchestrator {
     try {
       logger.info({
         from: message.from,
-        preview: message.body.substring(0, 50) + (message.body.length > 50 ? '...' : '')
+        userMessage: message.body
       }, 'Processing incoming WhatsApp message');
+
+      // Set current user ID for validation context
+      this.currentUserId = message.from;
 
       // Process message with AI
       const chatId = message.from;
       const response = await this.processMessage(message.body, chatId);
 
-      // Send reply via MCP tool
+      logger.info({
+        from: message.from,
+        aiResponse: response
+      }, 'AI response generated');
+
+      // Send reply via MCP tool (userId will be injected by AI based on system prompt)
       const sendMessageTool = this.tools.find((tool: any) => tool.name === 'whatsapp_send_message');
       if (!sendMessageTool) {
         throw new Error('whatsapp_send_message tool not found');
@@ -183,12 +227,13 @@ export class AgentOrchestrator {
       await sendMessageTool.invoke({
         phoneNumber: message.from,
         message: response,
+        userId: this.currentUserId, // Explicit injection for reply
       });
 
       logger.info({
         from: message.from,
         responseLength: response.length
-      }, 'Reply sent successfully');
+      }, 'Reply sent successfully via MCP tool');
 
     } catch (error) {
       logger.error({ error, from: message.from }, 'Error handling WhatsApp message');
@@ -200,30 +245,40 @@ export class AgentOrchestrator {
       logger.info({
         jobId: jobData.jobId,
         jobName: jobData.jobName,
-        hasPayload: !!jobData.payload,
-        hasPrompt: !!jobData.payload?.prompt
-      }, 'Handling cronjob trigger');
+        payload: jobData.payload
+      }, 'Processing incoming cronjob trigger');
 
       const { payload } = jobData;
 
       // If payload has a prompt, process it like a user message
       if (payload?.prompt) {
+        // Extract userId from context
+        const requestedBy = payload.context?.requestedBy;
+        if (!requestedBy) {
+          logger.error({ jobData }, 'Missing requestedBy in cronjob context - aborting');
+          return;
+        }
+
+        // Set current user ID for validation context
+        this.currentUserId = requestedBy;
+
         logger.info({
           prompt: payload.prompt,
-          jobId: jobData.jobId
+          jobId: jobData.jobId,
+          requestedBy
         }, 'Processing scheduled prompt from cronjob');
 
         try {
-          // Use a special session ID for system/scheduled tasks
-          // This keeps scheduled task executions separate from user conversations
-          const systemSessionId = `system:cronjob:${jobData.jobId}`;
+          // Use session ID from context or create system session
+          const sessionId = payload.context?.sessionId || `system:cronjob:${jobData.jobId}`;
 
           // Process the prompt through the AI agent
-          const response = await this.processMessage(payload.prompt, systemSessionId);
+          const response = await this.processMessage(payload.prompt, sessionId);
 
           logger.info({
             jobId: jobData.jobId,
             jobName: jobData.jobName,
+            requestedBy,
             responsePreview: response.substring(0, 100) + (response.length > 100 ? '...' : ''),
             responseLength: response.length
           }, 'Scheduled task executed successfully');

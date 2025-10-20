@@ -138,10 +138,18 @@ export const cronjobTools = [
   },
 ];
 
-export async function handleCronjobTool(name: string, args: any) {
+export async function handleCronjobTool(name: string, args: any, context?: { userId?: string }) {
   switch (name) {
     case 'cronjob_create': {
       const { name: jobName, type, schedule, scheduledTime, enabled = true, payload } = args;
+      logger.info({
+        jobName,
+        type,
+        schedule,
+        scheduledTime,
+        enabled,
+        payload
+      }, 'Executing cronjob_create tool');
       const response = await axios.post(`${CRONJOB_API_URL}/jobs`, {
         name: jobName,
         type,
@@ -162,6 +170,7 @@ export async function handleCronjobTool(name: string, args: any) {
     }
 
     case 'cronjob_list': {
+      logger.info({}, 'Executing cronjob_list tool');
       const response = await axios.get(`${CRONJOB_API_URL}/jobs`);
 
       return {
@@ -176,6 +185,7 @@ export async function handleCronjobTool(name: string, args: any) {
 
     case 'cronjob_get': {
       const { jobId } = args;
+      logger.info({ jobId }, 'Executing cronjob_get tool');
       const response = await axios.get(`${CRONJOB_API_URL}/jobs/${jobId}`);
 
       return {
@@ -190,6 +200,7 @@ export async function handleCronjobTool(name: string, args: any) {
 
     case 'cronjob_update': {
       const { jobId, ...updates } = args;
+      logger.info({ jobId, updates }, 'Executing cronjob_update tool');
       const response = await axios.patch(`${CRONJOB_API_URL}/jobs/${jobId}`, updates);
 
       return {
@@ -204,6 +215,7 @@ export async function handleCronjobTool(name: string, args: any) {
 
     case 'cronjob_delete': {
       const { jobId } = args;
+      logger.info({ jobId }, 'Executing cronjob_delete tool');
       await axios.delete(`${CRONJOB_API_URL}/jobs/${jobId}`);
 
       return {
@@ -218,6 +230,7 @@ export async function handleCronjobTool(name: string, args: any) {
 
     case 'cronjob_start': {
       const { jobId } = args;
+      logger.info({ jobId }, 'Executing cronjob_start tool');
       await axios.post(`${CRONJOB_API_URL}/jobs/${jobId}/start`);
 
       return {
@@ -232,6 +245,7 @@ export async function handleCronjobTool(name: string, args: any) {
 
     case 'cronjob_stop': {
       const { jobId } = args;
+      logger.info({ jobId }, 'Executing cronjob_stop tool');
       await axios.post(`${CRONJOB_API_URL}/jobs/${jobId}/stop`);
 
       return {
