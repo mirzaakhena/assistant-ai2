@@ -8,7 +8,7 @@ const CRONJOB_API_URL = `http://localhost:${process.env.CRONJOB_PORT || 3002}/ap
 export const cronjobTools = [
   {
     name: 'cronjob_create',
-    description: 'Create a new job (recurring with cron schedule OR one-time at specific time). For scheduled tasks, use payload with "prompt" field containing natural language instruction that will be executed by AI when job triggers.',
+    description: 'Create a new job (recurring, one-time at specific datetime, OR one-time-relative for delay from now). For scheduled tasks, use payload with "prompt" field containing natural language instruction that will be executed by AI when job triggers.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -18,16 +18,20 @@ export const cronjobTools = [
         },
         type: {
           type: 'string',
-          description: 'Job type: "recurring" (repeating schedule) or "one-time" (single execution)',
-          enum: ['recurring', 'one-time'],
+          description: 'Job type: "recurring" (repeating schedule), "one-time" (execute at absolute datetime), or "one-time-relative" (execute after delay from now)',
+          enum: ['recurring', 'one-time', 'one-time-relative'],
         },
         schedule: {
           type: 'string',
           description: 'Cron expression (required for recurring jobs). Examples: "0 9 * * *" = daily 9 AM, "*/5 * * * *" = every 5 min',
         },
         scheduledTime: {
-          type: 'number',
-          description: 'Unix timestamp in milliseconds (required for one-time jobs). MUST be in the future. Calculate as: current_timestamp_ms + offset_ms. Example: For 2 minutes from now, use current_time + (2 * 60 * 1000)',
+          type: 'string',
+          description: 'Datetime in yyyyMMddHHmmss format (required for one-time jobs). MUST be in the future. Format: year(4)month(2)day(2)hour(2)minute(2)second(2). Example: "20251221120000" = December 21, 2025, 12:00:00',
+        },
+        delayTime: {
+          type: 'string',
+          description: 'Duration delay from now (required for one-time-relative jobs). Format: [Xh][Ym][Zs] where X=hours, Y=minutes, Z=seconds. Examples: "2h" = 2 hours, "30m" = 30 minutes, "45s" = 45 seconds, "2h30m" = 2 hours 30 minutes, "1h15m30s" = 1 hour 15 minutes 30 seconds',
         },
         enabled: {
           type: 'boolean',
@@ -141,23 +145,35 @@ export const cronjobTools = [
 export async function handleCronjobTool(name: string, args: any, context?: { userId?: string }) {
   switch (name) {
     case 'cronjob_create': {
-      const { name: jobName, type, schedule, scheduledTime, enabled = true, payload } = args;
+      const { name: jobName, type, schedule, scheduledTime, delayTime, enabled = true, payload } = args;
       logger.info({
         jobName,
         type,
         schedule,
         scheduledTime,
+        delayTime,
         enabled,
         payload
       }, 'Executing cronjob_create tool');
-      const response = await axios.post(`${CRONJOB_API_URL}/jobs`, {
+
+      // Build request body based on type
+      const requestBody: any = {
         name: jobName,
         type,
-        schedule,
-        scheduledTime,
         enabled,
         payload,
-      });
+      };
+
+      // Add type-specific fields
+      if (type === 'recurring') {
+        requestBody.schedule = schedule;
+      } else if (type === 'one-time') {
+        requestBody.scheduledTime = scheduledTime;
+      } else if (type === 'one-time-relative') {
+        requestBody.delayTime = delayTime;
+      }
+
+      const response = await axios.post(`${CRONJOB_API_URL}/jobs`, requestBody);
 
       return {
         content: [

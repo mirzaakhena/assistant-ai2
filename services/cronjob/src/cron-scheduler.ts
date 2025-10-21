@@ -50,16 +50,17 @@ export class CronScheduler {
       this.createRecurringJob(definition);
     } else if (definition.type === 'one-time') {
       if (!definition.scheduledTime) {
-        throw new Error('One-time jobs require a scheduledTime (Unix timestamp)');
+        throw new Error('One-time jobs require a scheduledTime (Unix timestamp in milliseconds). Note: API layer accepts yyyyMMddHHmmss format which is converted to milliseconds.');
       }
       const now = Date.now();
+
       if (definition.scheduledTime <= now) {
         const scheduledDate = new Date(definition.scheduledTime).toISOString();
         const currentDate = new Date(now).toISOString();
         throw new Error(
           `scheduledTime must be in the future. ` +
-          `Received: ${definition.scheduledTime} (${scheduledDate}), ` +
-          `Current: ${now} (${currentDate})`
+          `Received: ${definition.scheduledTime}ms (${scheduledDate}), ` +
+          `Current: ${now}ms (${currentDate})`
         );
       }
       this.createOneTimeJob(definition);

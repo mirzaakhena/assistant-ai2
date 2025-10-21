@@ -51,7 +51,7 @@ export class WhatsAppClient {
     });
 
     this.client.on('authenticated', () => {
-      logger.info('WhatsApp client authenticated');
+      logger.info('WhatsApp client authenticated - waiting for ready event...');
     });
 
     this.client.on('auth_failure', (msg: any) => {
@@ -61,6 +61,14 @@ export class WhatsAppClient {
     this.client.on('disconnected', (reason: any) => {
       logger.warn({ reason }, 'WhatsApp client disconnected');
       this.ready = false;
+    });
+
+    this.client.on('loading_screen', (percent: any, message: any) => {
+      logger.info({ percent, message }, 'WhatsApp client loading...');
+    });
+
+    this.client.on('change_state', (state: any) => {
+      logger.info({ state }, 'WhatsApp client state changed');
     });
 
     // Message handler - Publish to Redis Stream
@@ -96,12 +104,6 @@ export class WhatsAppClient {
 
         const streamName = process.env.WHATSAPP_STREAM_NAME || 'whatsapp:messages';
         await this.eventPublisher.publish(streamName, event);
-
-        logger.info({
-          from: message.from,
-          eventId: event.eventId,
-          streamName
-        }, 'Event published to Redis Stream');
       } catch (error) {
         logger.error({ error, from: message.from }, 'Failed to publish message event');
       }
@@ -117,13 +119,24 @@ export class WhatsAppClient {
     const startTime = Date.now();
 
     while (!this.ready) {
-      if (Date.now() - startTime > timeout) {
-        throw new Error('WhatsApp client initialization timeout');
+      const elapsed = Date.now() - startTime;
+      if (elapsed > timeout) {
+        logger.error({
+          timeoutMs: timeout,
+          elapsedMs: elapsed,
+        }, 'WhatsApp client initialization timeout - ready event never fired');
+        throw new Error(`WhatsApp client initialization timeout after ${elapsed}ms`);
       }
+
+      // Log progress every 10 seconds
+      if (elapsed % 10000 < 1000) {
+        logger.info({ elapsedMs: elapsed, ready: this.ready }, 'Waiting for WhatsApp client to be ready...');
+      }
+
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 
-    logger.info('WhatsApp client initialized');
+    logger.info('WhatsApp client initialized and ready');
   }
 
   async sendMessage(phoneNumber: string, message: string): Promise<void> {

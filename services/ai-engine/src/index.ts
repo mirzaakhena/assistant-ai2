@@ -23,11 +23,6 @@ async function main() {
     await whatsappConsumer.initialize();
     whatsappConsumer.on('whatsapp:message', async (event) => {
       const whatsappEvent = event as WhatsAppMessageEvent;
-      logger.info({
-        source: 'whatsapp',
-        from: whatsappEvent.data.from,
-        message: whatsappEvent.data.body
-      }, 'Received event from event stream');
       try {
         await agent.handleWhatsAppMessage(whatsappEvent.data);
       } catch (error) {
@@ -40,11 +35,6 @@ async function main() {
     await cronjobConsumer.initialize();
     cronjobConsumer.on('cronjob:trigger', async (event) => {
       const cronjobEvent = event as CronjobEvent;
-      logger.info({
-        source: 'cronjob',
-        jobName: cronjobEvent.data.jobName,
-        payload: cronjobEvent.data.payload
-      }, 'Received event from event stream');
       try {
         await agent.handleCronjobTrigger(cronjobEvent.data);
       } catch (error) {

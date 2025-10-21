@@ -75,7 +75,14 @@ async function main() {
     process.on('SIGTERM', shutdown);
 
   } catch (error) {
-    logger.error({ error }, 'Failed to start WhatsApp Service');
+    logger.error({
+      error: error instanceof Error ? {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      } : error,
+    }, 'Failed to start WhatsApp Service');
+    console.error('Full error details:', error);
     process.exit(1);
   }
 }

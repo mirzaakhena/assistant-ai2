@@ -1,0 +1,87 @@
+@baseUrl = http://localhost:3002
+@jobId = 288ed6a2-26ea-48b6-a58c-044d02fc10a3
+
+### Create a recurring job
+POST {{baseUrl}}/api/jobs HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "daily-report",
+  "type": "recurring",
+  "schedule": "0 9 * * *",
+  "enabled": true,
+  "payload": {
+    "reportType": "daily",
+    "recipients": ["admin@example.com"]
+  }
+}
+
+### Create a one-time job (absolute time)
+# Note: scheduledTime must be in yyyyMMddHHmmss format (14 digits)
+# Format: yyyyMMddHHmmss (year, month, day, hour, minute, second)
+# Example: "20251021120000" = October 21, 2025, 12:00:00
+# Use a future datetime for the job to execute
+POST {{baseUrl}}/api/jobs HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "scheduled-notification",
+  "type": "one-time",
+  "scheduledTime": "20251221120000",
+  "enabled": true,
+  "payload": {
+    "message": "This is a scheduled notification",
+    "userId": "12345"
+  }
+}
+
+### Create a one-time-relative job (relative time)
+# Note: delayTime must be in duration format
+# Format: [Xh][Ym][Zs] where X=hours, Y=minutes, Z=seconds
+# Examples:
+#   "2h" = 2 hours from now
+#   "3m" = 3 minutes from now
+#   "4s" = 4 seconds from now
+#   "2h3m4s" = 2 hours, 3 minutes, 4 seconds from now
+#   "2h3m" = 2 hours, 3 minutes from now
+#   "1m30s" = 1 minute, 30 seconds from now
+POST {{baseUrl}}/api/jobs HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "delayed-notification",
+  "type": "one-time-relative",
+  "delayTime": "2m",
+  "enabled": true,
+  "payload": {
+    "message": "This notification will be sent 2 minutes from now",
+    "userId": "12345"
+  }
+}
+
+### Get all jobs
+GET {{baseUrl}}/api/jobs HTTP/1.1
+
+### Get job statistics
+GET {{baseUrl}}/api/jobs/stats HTTP/1.1
+
+### Get job by ID
+GET {{baseUrl}}/api/jobs/{{jobId}} HTTP/1.1
+
+### Update job
+PATCH {{baseUrl}}/api/jobs/{{jobId}} HTTP/1.1
+Content-Type: application/json
+
+{
+  "enabled": false,
+  "schedule": "0 10 * * *"
+}
+
+### Delete job
+DELETE {{baseUrl}}/api/jobs/{{jobId}} HTTP/1.1
+
+### Start job
+POST {{baseUrl}}/api/jobs/{{jobId}}/start HTTP/1.1
+
+### Stop job
+POST {{baseUrl}}/api/jobs/{{jobId}}/stop HTTP/1.1
