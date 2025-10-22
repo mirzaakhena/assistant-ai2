@@ -1,0 +1,18 @@
+Saya ingin membuat aplikasi AI Assistant berbasis whatsapp.
+gambaran kerjanya begini :
+Akan ada satu nomor whatsapp yang akan didedikasikan untuk dikendalikan oleh AI.
+user bisa berinteraksi dengan AI via whatsapp dan AI pun bisa membalas request (menjawab) user via whatsapp.
+Jadi whatsapp ini hanya sebagai user interface bagi user yang ingin berinteraksi dengan AI ini.
+
+Selebihnya AI ini diberikan berbagai macam tools.
+
+# AI dibekali tool TodoList
+User bisa meminta AI untuk mencatatkan suatu Todo, misal "saya perlu beli sabun, deterjen, gula dan cabe" dan nanti AI bisa diminta untuk menyebutkan kembali apa saja yang sudah dicatatnya. 
+
+# AI dibekali tool 
+
+# AI dibekali tool Reminder
+User bahkan juga bisa meminta AI untuk mengingatkan sesuatu, misal "nanti sore jam 3 saya perlu menyalakan keran air, tolong ingatkan saya" lalu AI akan menjawab "Ok saya akan ingatkan anda". Dibalik layar, sebenarnya AI akan membuat sebuah prompt lalu menaruh prompt tersebut didalam sebuah cronjob yang akan aktif pada waktu yang sudah ditentukan, misal dalam contoh ini prompt yang akan dibuat adalah seperti ini: "Kirimkan whatsapp dengan pesan 'Nyalakan keran air' ke nomor 628123456789. Jika pesan tersebut sudah dikirimkan kabari saya". cronjob diatur untuk di eksekusi tepat di jam 3. 
+Jika AI menerima prompt tersebut, (dari sudut pandang AI) ini adalah sebuah command yang harus dijalankan segera. Nmaun karena pesan ini dimasukkan dalam cronjob, command ini akan dijalankan dimasa depan.
+
+AI juga harus paham konteks, misal : AI perlu tahu siapa "saya", jawabannya adalah nomor whatsapp orang yang meminta untuk diingatkan yaitu "628123456789". Kecuali user menyebutkan secara spesifik nama sesorang, maka AI harus mencari terlebih dahulu di contact whatsapp. Misal contoh nya seperti ini : "Nanti malam, tolong tagih pembayaran utang sebesar Rp50.000 ke Ali". Dalam hal ini AI akan melakukan pengecekan nomor kontak whatsapp dengan nama "Ali", jika ditemukan lebih dari satu nama "Ali", AI bisa menanyakan kembali ke user. Bisa juga AI membuat kesimpulan bahwasanya "malam ini" adalah jam 8 malam. AI mungkin akan membalas user dengan konfirmasi "Baik, saya akan mengirimkan pesan pengingat untuk pembayaran utang nanti malam jam 8, Namun Saya menemukan ada 3 orang dengan nama 'Ali', yaitu 'Ali Dharma', 'Aliando' dan 'Handoko Ali'. Ali yang mana yang anda maksud?". 
